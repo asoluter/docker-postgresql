@@ -1,6 +1,6 @@
 PostgreSQL:
   restart: always
-  image: sameersbn/postgresql:12-20200524
+  image: asoluter/postgresql:13-20211010
   ports:
     - "5432:5432"
   environment:
