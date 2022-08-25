@@ -1,16 +1,16 @@
-FROM ubuntu:focal-20210921 AS add-apt-repositories
+FROM ubuntu:kinetic-20220801 AS add-apt-repositories
 
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y wget gnupg \
  && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
- && echo 'deb http://apt.postgresql.org/pub/repos/apt/ focal-pgdg main' >> /etc/apt/sources.list
+ && echo 'deb http://apt.postgresql.org/pub/repos/apt/ kinetic-pgdg main' >> /etc/apt/sources.list
 
-FROM ubuntu:focal-20210921
+FROM ubuntu:kinetic-20220801
 
 LABEL maintainer="asoluter@gmail.com"
 
 ENV PG_APP_HOME="/etc/docker-postgresql" \
-    PG_VERSION=13 \
+    PG_VERSION=14 \
     PG_USER=postgres \
     PG_HOME=/var/lib/postgresql \
     PG_RUNDIR=/run/postgresql \
