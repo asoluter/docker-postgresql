@@ -1,9 +1,9 @@
 FROM ubuntu:kinetic-20221101 AS add-apt-repositories
 
 RUN apt-get update \
- && DEBIAN_FRONTEND=noninteractive apt-get install -y wget gnupg \
- && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
- && echo 'deb http://apt.postgresql.org/pub/repos/apt/ kinetic-pgdg main' >> /etc/apt/sources.list
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates gnupg \
+ && curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | tee /etc/apt/trusted.gpg.d/apt.postgresql.org.gpg >/dev/null \
+ && echo "deb http://apt.postgresql.org/pub/repos/apt/ kinetic-pgdg main" > /etc/apt/sources.list.d/pgdg.list
 
 FROM ubuntu:kinetic-20221101
 
@@ -20,9 +20,9 @@ ENV PG_APP_HOME="/etc/docker-postgresql" \
 ENV PG_BINDIR=/usr/lib/postgresql/${PG_VERSION}/bin \
     PG_DATADIR=${PG_HOME}/${PG_VERSION}/main
 
-COPY --from=add-apt-repositories /etc/apt/trusted.gpg /etc/apt/trusted.gpg
+COPY --from=add-apt-repositories /etc/apt/trusted.gpg.d/apt.postgresql.org.gpg /etc/apt/trusted.gpg.d/apt.postgresql.org.gpg
 
-COPY --from=add-apt-repositories /etc/apt/sources.list /etc/apt/sources.list
+COPY --from=add-apt-repositories /etc/apt/sources.list.d/pgdg.list /etc/apt/sources.list.d/pgdg.list
 
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y acl sudo locales \
