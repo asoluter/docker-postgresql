@@ -341,7 +341,9 @@ create_database() {
 
           if [[ -n ${DB_USER} ]]; then
             echo "‣ Granting access to ${DB_USER} user..."
-            psql -U ${PG_USER} -c "GRANT ALL PRIVILEGES ON DATABASE \"${database}\" to \"${DB_USER}\";" >/dev/null
+            psql -U ${PG_USER} -c "GRANT ALL PRIVILEGES ON DATABASE \"${database}\" TO \"${DB_USER}\";" >/dev/null
+            # Needed after PostgreSQL 15 release
+            psql -U ${PG_USER} -d ${database} -c "GRANT ALL ON SCHEMA public TO \"${DB_USER}\";" >/dev/null
           fi
         done
         ;;

@@ -1,11 +1,11 @@
-FROM ubuntu:kinetic-20221101 AS add-apt-repositories
+FROM ubuntu:kinetic-20221130 AS add-apt-repositories
 
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates gnupg \
  && curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | tee /etc/apt/trusted.gpg.d/apt.postgresql.org.gpg >/dev/null \
  && echo "deb http://apt.postgresql.org/pub/repos/apt/ kinetic-pgdg main" > /etc/apt/sources.list.d/pgdg.list
 
-FROM ubuntu:kinetic-20221101
+FROM ubuntu:kinetic-20221130
 
 LABEL maintainer="asoluter@gmail.com"
 
