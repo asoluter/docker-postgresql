@@ -190,11 +190,11 @@ initialize_database() {
         if [[ -n ${PG_OLD_VERSION} ]]; then
           echo "‣ Migrating PostgreSQL ${PG_OLD_VERSION} data to ${PG_VERSION}..."
 
-          # protect the existing data from being altered by apt-get
+          # protect the existing data from being altered by apt
           mv ${PG_HOME}/${PG_OLD_VERSION} ${PG_HOME}/${PG_OLD_VERSION}.migrating
 
           echo "‣ Installing PostgreSQL ${PG_OLD_VERSION}..."
-          if ! ( apt-get update &&  DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-${PG_OLD_VERSION} postgresql-client-${PG_OLD_VERSION} ) >/dev/null; then
+          if ! ( apt update &&  DEBIAN_FRONTEND=noninteractive apt install -y postgresql-${PG_OLD_VERSION} postgresql-client-${PG_OLD_VERSION} ) >/dev/null; then
             echo "ERROR! Failed to install PostgreSQL ${PG_OLD_VERSION}. Exiting..."
             # first move the old data back
             rm -rf ${PG_HOME}/${PG_OLD_VERSION}
