@@ -10,7 +10,11 @@ PG_RECOVERY_CONF=${PG_DATADIR}/recovery.conf
 
 ## Execute command as PG_USER
 exec_as_postgres() {
-  sudo -HEu ${PG_USER} "$@"
+  if [[ $(whoami) == ${PG_USER} ]]; then
+    $@
+  else
+    sudo -HEu ${PG_USER} "$@"
+  fi
 }
 
 map_uidgid() {
@@ -19,20 +23,24 @@ map_uidgid() {
   USERMAP_GID=${USERMAP_GID:-${USERMAP_UID:-$USERMAP_ORIG_GID}}
   USERMAP_UID=${USERMAP_UID:-$USERMAP_ORIG_UID}
   if [[ ${USERMAP_UID} != ${USERMAP_ORIG_UID} ]] || [[ ${USERMAP_GID} != ${USERMAP_ORIG_GID} ]]; then
-    echo "Adapting uid and gid for ${PG_USER}:${PG_USER} to $USERMAP_UID:$USERMAP_GID"
+    echo "Mapping UID and GID for ${PG_USER}:${PG_USER} to $USERMAP_UID:$USERMAP_GID"
     groupmod -o -g ${USERMAP_GID} ${PG_USER}
     sed -i -e "s|:${USERMAP_ORIG_UID}:${USERMAP_GID}:|:${USERMAP_UID}:${USERMAP_GID}:|" /etc/passwd
   fi
 }
 
 create_datadir() {
-  echo "Initializing datadir..."
+  echo "Initializing homedir..."
   mkdir -p ${PG_HOME}
-  if [[ -d ${PG_DATADIR} ]]; then
-    find ${PG_DATADIR} -type f | xargs chmod 0600
-    find ${PG_DATADIR} -type d | xargs chmod 0700
-  fi
-  chown -R ${PG_USER}:${PG_USER} ${PG_HOME}
+  chmod -R 755 ${PG_HOME}
+  chown -R ${PG_USER}: ${PG_HOME}
+  
+  echo "Initializing datadir..."
+  mkdir -p ${PG_DATADIR}
+  chmod 755 ${PG_DATADIR}
+  find ${PG_DATADIR} -type d -print0 | xargs -0 -I {} chmod 0700 {}
+  find ${PG_DATADIR} -type f -print0 | xargs -0 -I {} chmod 0600 {}
+  chown -R ${PG_USER}: ${PG_DATADIR}
 }
 
 create_certdir() {
@@ -41,14 +49,14 @@ create_certdir() {
   [[ -f ${PG_CERTDIR}/server.crt ]] && chmod 0644 ${PG_CERTDIR}/server.crt
   [[ -f ${PG_CERTDIR}/server.key ]] && chmod 0640 ${PG_CERTDIR}/server.key
   chmod 0755 ${PG_CERTDIR}
-  chown -R root:${PG_USER} ${PG_CERTDIR}
+  chown -R root: ${PG_CERTDIR}
 }
 
 create_logdir() {
   echo "Initializing logdir..."
   mkdir -p ${PG_LOGDIR}
   chmod -R 1775 ${PG_LOGDIR}
-  chown -R root:${PG_USER} ${PG_LOGDIR}
+  chown -R root: ${PG_LOGDIR}
 }
 
 create_rundir() {
@@ -56,7 +64,7 @@ create_rundir() {
   mkdir -p ${PG_RUNDIR} ${PG_RUNDIR}/${PG_VERSION}-main.pg_stat_tmp
   chmod -R 0755 ${PG_RUNDIR}
   chmod g+s ${PG_RUNDIR}
-  chown -R ${PG_USER}:${PG_USER} ${PG_RUNDIR}
+  chown -R ${PG_USER}: ${PG_RUNDIR}
 }
 
 set_postgresql_param() {
