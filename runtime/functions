@@ -26,6 +26,7 @@ map_uidgid() {
     echo "Mapping UID and GID for ${PG_USER}:${PG_USER} to $USERMAP_UID:$USERMAP_GID"
     groupmod -o -g ${USERMAP_GID} ${PG_USER}
     sed -i -e "s|:${USERMAP_ORIG_UID}:${USERMAP_GID}:|:${USERMAP_UID}:${USERMAP_GID}:|" /etc/passwd
+    find ${PG_HOME} -path ${PG_HOME}/\* -prune -o -print0 | xargs -0 chown -h ${PG_USER}:
   fi
 }
 
@@ -37,7 +38,7 @@ create_datadir() {
   
   echo "Initializing datadir..."
   mkdir -p ${PG_DATADIR}
-  chmod 755 ${PG_DATADIR}
+  chmod 750 ${PG_DATADIR}
   find ${PG_DATADIR} -type d -print0 | xargs -0 -I {} chmod 0700 {}
   find ${PG_DATADIR} -type f -print0 | xargs -0 -I {} chmod 0600 {}
   chown -R ${PG_USER}: ${PG_DATADIR}
@@ -46,9 +47,9 @@ create_datadir() {
 create_certdir() {
   echo "Initializing certdir..."
   mkdir -p ${PG_CERTDIR}
+  chmod -R 0750 ${PG_CERTDIR}
   [[ -f ${PG_CERTDIR}/server.crt ]] && chmod 0644 ${PG_CERTDIR}/server.crt
   [[ -f ${PG_CERTDIR}/server.key ]] && chmod 0640 ${PG_CERTDIR}/server.key
-  chmod 0755 ${PG_CERTDIR}
   chown -R root: ${PG_CERTDIR}
 }
 
@@ -62,7 +63,7 @@ create_logdir() {
 create_rundir() {
   echo "Initializing rundir..."
   mkdir -p ${PG_RUNDIR} ${PG_RUNDIR}/${PG_VERSION}-main.pg_stat_tmp
-  chmod -R 0755 ${PG_RUNDIR}
+  chmod -R 0750 ${PG_RUNDIR}
   chmod g+s ${PG_RUNDIR}
   chown -R ${PG_USER}: ${PG_RUNDIR}
 }
@@ -199,6 +200,7 @@ initialize_database() {
           echo "‣ Migrating PostgreSQL ${PG_OLD_VERSION} data to ${PG_VERSION}..."
 
           # protect the existing data from being altered by apt
+          chmod -R 750 ${PG_HOME}/${PG_OLD_VERSION}
           mv ${PG_HOME}/${PG_OLD_VERSION} ${PG_HOME}/${PG_OLD_VERSION}.migrating
 
           echo "‣ Installing PostgreSQL ${PG_OLD_VERSION}..."
