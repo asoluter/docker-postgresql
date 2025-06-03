@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 shopt -s extglob
-source ${PG_APP_HOME}/env-defaults
+source ${PG_APP_HOME}/env-defaults.sh
 
 PG_CONF=${PG_DATADIR}/postgresql.conf
 PG_HBA_CONF=${PG_DATADIR}/pg_hba.conf
@@ -332,6 +332,12 @@ load_extensions() {
     echo "‣ Loading ${extension} extension..."
     psql -U ${PG_USER} -d ${database} -c "CREATE EXTENSION IF NOT EXISTS ${extension};" >/dev/null 2>&1
   done
+  
+  # Leave this verbose
+  if psql -U ${PG_USER} -d ${database} -c "SELECT PostGIS_version();"; then
+    # Update PostGIS to current version
+    psql -U ${PG_USER} -d ${database} -c "SELECT postgis_extensions_upgrade();"
+  fi
 }
 
 create_database() {

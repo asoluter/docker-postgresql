@@ -2,7 +2,7 @@
 set -e
 
 # shellcheck source=runtime/functions
-source "${PG_APP_HOME}/functions"
+source "${PG_APP_HOME}/functions.sh"
 
 [[ ${DEBUG} == true ]] && set -x
 
@@ -34,4 +34,3 @@ if [[ -z ${1} ]]; then
 else
   exec "$@"
 fi
-
