@@ -265,7 +265,9 @@ initialize_database() {
   fi
 
   # allow remote connections to postgresql database
+  # use forward-compatible md5 option
   set_hba_param "host all all 0.0.0.0/0 md5"
+  set_hba_param "host all all ::0/0 md5"
 }
 
 set_resolvconf_perms() {
@@ -335,6 +337,7 @@ load_extensions() {
   
   # Leave this verbose
   if psql -U ${PG_USER} -d ${database} -c "SELECT PostGIS_version();"; then
+    echo "‣ Upgrading postgis extension..."
     # Update PostGIS to current version
     psql -U ${PG_USER} -d ${database} -c "SELECT postgis_extensions_upgrade();"
   fi
