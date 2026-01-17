@@ -257,6 +257,9 @@ initialize_database() {
   # configure logging
   set_postgresql_param "log_directory" "${PG_LOGDIR}"
   set_postgresql_param "log_filename" "postgresql-${PG_VERSION}-main.log"
+  
+  # configure password encryption
+  set_postgresql_param "password_encryption" "scram-sha-256"
 
   # trust connections from local network
   if [[ ${PG_TRUST_LOCALNET} == true ]]; then

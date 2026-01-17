@@ -30,7 +30,7 @@ RUN apt update \
  && DEBIAN_FRONTEND=noninteractive apt autoremove -y \
  && DEBIAN_FRONTEND=noninteractive apt install -y acl sudo locales \
         postgresql-${PG_VERSION} postgresql-client-${PG_VERSION} postgresql-contrib-${PG_VERSION} \
-        postgresql-${PG_VERSION}-postgis-${POSTGIS_VERSION} postgis postgresql-${PG_VERSION}-pgrouting osm2pgrouting \
+        postgresql-${PG_VERSION}-postgis-${POSTGIS_VERSION} postgresql-${PG_VERSION}-postgis-${POSTGIS_VERSION}-scripts postgresql-${PG_VERSION}-pgrouting osm2pgrouting \
  && update-locale LANG=C.UTF-8 LC_MESSAGES=POSIX \
  && locale-gen en_US.UTF-8 \
  && DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales \
