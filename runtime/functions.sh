@@ -223,7 +223,7 @@ initialize_database() {
         fi
 
         exec_as_postgres ${PG_BINDIR}/initdb --pgdata=${PG_DATADIR} \
-          --username=${PG_USER} --encoding=unicode --auth=trust ${PG_PASSWORD:+--pwfile=/tmp/pwfile} >/dev/null
+          --username=${PG_USER} --encoding=unicode --data-checksums --auth=trust ${PG_PASSWORD:+--pwfile=/tmp/pwfile} >/dev/null
 
         if [[ -n ${PG_OLD_VERSION} ]]; then
           PG_OLD_BINDIR=/usr/lib/postgresql/${PG_OLD_VERSION}/bin
@@ -233,12 +233,17 @@ initialize_database() {
           PG_OLD_IDENT_CONF=${PG_OLD_DATADIR}/pg_ident.conf
 
           echo -n "‣ Migration in progress. Please be patient..."
-          exec_as_postgres ${PG_BINDIR}/pg_upgrade \
+          if exec_as_postgres ${PG_BINDIR}/pg_upgrade \
             -b ${PG_OLD_BINDIR} -B ${PG_BINDIR} \
             -d ${PG_OLD_DATADIR} -D ${PG_DATADIR} \
             -o "-c config_file=${PG_OLD_CONF} --hba_file=${PG_OLD_HBA_CONF} --ident_file=${PG_OLD_IDENT_CONF}" \
             -O "-c config_file=${PG_CONF} --hba_file=${PG_HBA_CONF} --ident_file=${PG_IDENT_CONF}"
-          echo
+          then
+            echo
+          else
+            echo -n "‣ Migration failed. Exiting..."
+            exit 1
+          fi
         fi
         ;;
     esac
@@ -337,13 +342,6 @@ load_extensions() {
     echo "‣ Loading ${extension} extension..."
     psql -U ${PG_USER} -d ${database} -c "CREATE EXTENSION IF NOT EXISTS ${extension};" >/dev/null 2>&1
   done
-  
-  # Leave this verbose
-  if psql -U ${PG_USER} -d ${database} -c "SELECT PostGIS_version();"; then
-    echo "‣ Upgrading postgis extension..."
-    # Update PostGIS to current version
-    psql -U ${PG_USER} -d ${database} -c "SELECT postgis_extensions_upgrade();"
-  fi
 }
 
 create_database() {
@@ -402,6 +400,7 @@ configure_postgresql() {
   # start postgres server internally for the creation of users and databases
   rm -rf ${PG_DATADIR}/postmaster.pid
   set_postgresql_param "listen_addresses" "127.0.0.1" quiet
+  
   exec_as_postgres ${PG_BINDIR}/pg_ctl -D ${PG_DATADIR} -w start >/dev/null
 
   create_user
