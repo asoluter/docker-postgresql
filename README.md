@@ -1,4 +1,4 @@
-# asoluter/postgresql:15.2-20230217
+# asoluter/postgresql:18
 
 - [Introduction](#introduction)
   - [Contributing](#contributing)
@@ -26,7 +26,7 @@
 
 # Introduction
 
-`Dockerfile` to create a [Docker](https://www.docker.com/) container image for [PostgreSQL](http://postgresql.org/).
+`Dockerfile` to create a [Docker](https://www.docker.com/) container image for [PostgreSQL](http://postgresql.org/) with pre-installed **[pgvector](https://github.com/pgvector/pgvector)** and **[PostGIS 3](https://postgis.net/)** support.
 
 PostgreSQL is an object-relational database management system (ORDBMS) with an emphasis on extensibility and standards-compliance [[source](https://en.wikipedia.org/wiki/PostgreSQL)].
 
@@ -59,7 +59,7 @@ Automated builds of the image are available on [Dockerhub](https://hub.docker.co
 > **Note**: Builds are also available on [Quay.io](https://quay.io/repository/sameersbn/postgresql)
 
 ```bash
-docker pull asoluter/postgresql:15.2-20230217
+docker pull asoluter/postgresql:18
 ```
 
 Alternatively you can build the image yourself.
@@ -76,7 +76,7 @@ Start PostgreSQL using:
 docker run --name postgresql -itd --restart always \
   --publish 5432:5432 \
   --volume postgresql:/var/lib/postgresql \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 Login to the PostgreSQL server using:
@@ -107,7 +107,7 @@ By default connections to the PostgreSQL server need to authenticated using a pa
 ```bash
 docker run --name postgresql -itd --restart always \
   --env 'PG_TRUST_LOCALNET=true' \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 > **Note**
@@ -121,7 +121,7 @@ By default the `postgres` user is not assigned a password and as a result you ca
 ```bash
 docker run --name postgresql -itd --restart always \
   --env 'PG_PASSWORD=passw0rd' \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 
@@ -137,7 +137,7 @@ A new PostgreSQL database user can be created by specifying the `DB_USER` and `D
 ```bash
 docker run --name postgresql -itd --restart always \
   --env 'DB_USER=dbuser' --env 'DB_PASS=dbuserpass' \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 > **Notes**
@@ -154,7 +154,7 @@ A new PostgreSQL database can be created by specifying the `DB_NAME` variable wh
 ```bash
 docker run --name postgresql -itd --restart always \
   --env 'DB_NAME=dbname' \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 By default databases are created by copying the standard system database named `template1`. You can specify a different template for your database using the `DB_TEMPLATE` parameter. Refer to [Template Databases](http://www.postgresql.org/docs/9.4/static/manage-ag-templatedbs.html) for further information.
@@ -166,7 +166,7 @@ Additionally, more than one database can be created by specifying a comma separa
 ```bash
 docker run --name postgresql -itd --restart always \
   --env 'DB_NAME=dbname1,dbname2' \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 ## Granting user access to a database
@@ -177,26 +177,28 @@ If the `DB_USER` and `DB_PASS` variables are specified along with the `DB_NAME` 
 docker run --name postgresql -itd --restart always \
   --env 'DB_USER=dbuser' --env 'DB_PASS=dbuserpass' \
   --env 'DB_NAME=dbname1,dbname2' \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 In the above example `dbuser` with be granted access to both the `dbname1` and `dbname2` databases.
 
-# Enabling extensions
+## Enabling extensions
 
-The image also packages the [postgres contrib module](http://www.postgresql.org/docs/9.4/static/contrib.html). A comma separated list of modules can be specified using the `DB_EXTENSION` parameter.
+The image comes pre-installed with **[pgvector](https://github.com/pgvector/pgvector)** (`vector`), **[PostGIS 3](https://postgis.net/)** (`postgis`, `postgis_raster`, `postgis_topology`), and standard **[PostgreSQL Contrib](https://www.postgresql.org/docs/current/contrib.html)** modules (`unaccent`, `pg_trgm`, `uuid-ossp`, etc.).
+
+A comma-separated list of extensions can be specified using the `DB_EXTENSION` environment variable to automatically enable them on databases created via `DB_NAME`:
 
 ```bash
-docker run --name postgresql -itd \
-  --env 'DB_NAME=db1,db2' --env 'DB_EXTENSION=unaccent,pg_trgm' \
-  asoluter/postgresql:15.2-20230217
+docker run --name postgresql -itd --restart always \
+  --env 'DB_NAME=db1,db2' --env 'DB_EXTENSION=vector,postgis,unaccent,pg_trgm' \
+  asoluter/postgresql:18
 ```
 
-The above command enables the `unaccent` and `pg_trgm` modules on the databases listed in `DB_NAME`, namely `db1` and `db2`.
+The above command enables the `vector`, `postgis`, `unaccent`, and `pg_trgm` extensions on the databases listed in `DB_NAME` (`db1` and `db2`).
 
-> **NOTE**:
+> **Automatic Extension Updates**
 >
-> This option deprecates the `DB_UNACCENT` parameter.
+> On container startup, the system automatically inspects all databases and updates installed extensions to their latest available versions (`ALTER EXTENSION ... UPDATE;`), keeping pgvector, PostGIS, and contrib extensions seamlessly updated across container upgrades.
 
 ## Creating replication user
 
@@ -205,7 +207,7 @@ Similar to the creation of a database user, a new PostgreSQL replication user ca
 ```bash
 docker run --name postgresql -itd --restart always \
   --env 'REPLICATION_USER=repluser' --env 'REPLICATION_PASS=repluserpass' \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 > **Notes**
@@ -227,7 +229,7 @@ Begin by creating the master node of our cluster:
 docker run --name postgresql-master -itd --restart always \
   --env 'DB_USER=dbuser' --env 'DB_PASS=dbuserpass' --env 'DB_NAME=dbname' \
   --env 'REPLICATION_USER=repluser' --env 'REPLICATION_PASS=repluserpass' \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 Notice that no additional arguments are specified while starting the master node of the cluster.
@@ -242,7 +244,7 @@ docker run --name postgresql-slave01 -itd --restart always \
   --env 'REPLICATION_MODE=slave' --env 'REPLICATION_SSLMODE=prefer' \
   --env 'REPLICATION_HOST=master' --env 'REPLICATION_PORT=5432'  \
   --env 'REPLICATION_USER=repluser' --env 'REPLICATION_PASS=repluserpass' \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 *In the above command, we used docker links so that we can address the master node using the `master` alias in `REPLICATION_HOST`.*
@@ -274,7 +276,7 @@ docker run --name postgresql-snapshot -itd --restart always \
   --env 'REPLICATION_MODE=snapshot' --env 'REPLICATION_SSLMODE=prefer' \
   --env 'REPLICATION_HOST=master' --env 'REPLICATION_PORT=5432'  \
   --env 'REPLICATION_USER=repluser' --env 'REPLICATION_PASS=repluserpass' \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 The difference between a slave and a snapshot is that a slave is read-only and updated whenever the master data is updated (streaming replication), while a snapshot is read-write and is not updated after the initial snapshot of the data from the master.
@@ -296,7 +298,7 @@ docker run --name postgresql-backup -it --rm \
   --env 'REPLICATION_HOST=master' --env 'REPLICATION_PORT=5432'  \
   --env 'REPLICATION_USER=repluser' --env 'REPLICATION_PASS=repluserpass' \
   --volume /srv/docker/backups/postgresql.$(date +%Y%m%d%H%M%S):/var/lib/postgresql \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 Once the backup is generated, the container will exit and the backup of the master data will be available at `/srv/docker/backups/postgresql.XXXXXXXXXXXX/`. Restoring the backup involves starting a container with the data in `/srv/docker/backups/postgresql.XXXXXXXXXXXX`.
@@ -307,7 +309,7 @@ You can customize the launch command of PostgreSQL server by specifying argument
 
 ```bash
 docker run --name postgresql -itd --restart always \
-  asoluter/postgresql:15.2-20230217 -c log_connections=on
+  asoluter/postgresql:18 -c log_connections=on
 ```
 
 Please refer to the documentation of [postgres](http://www.postgresql.org/docs/9.4/static/app-postgres.html) for the complete list of available options.
@@ -318,7 +320,7 @@ By default the PostgreSQL server logs are sent to the standard output. Using the
 
 ```bash
 docker run --name postgresql -itd --restart always \
-  asoluter/postgresql:15.2-20230217 -c logging_collector=on
+  asoluter/postgresql:18 -c logging_collector=on
 ```
 
 To access the PostgreSQL logs you can use `docker exec`. For example:
@@ -340,7 +342,7 @@ For example, if you want to assign the `postgres` user of the container the UID 
 ```bash
 docker run --name postgresql -itd --restart always \
   --env 'USERMAP_UID=999' --env 'USERMAP_GID=999' \
-  asoluter/postgresql:15.2-20230217
+  asoluter/postgresql:18
 ```
 
 # Maintenance
@@ -352,7 +354,7 @@ To upgrade to newer releases:
   1. Download the updated Docker image:
 
   ```bash
-  docker pull asoluter/postgresql:15.2-20230217
+  docker pull asoluter/postgresql:18
   ```
 
   2. Stop the currently running image:
@@ -372,7 +374,7 @@ To upgrade to newer releases:
   ```bash
   docker run --name postgresql -itd \
     [OPTIONS] \
-    asoluter/postgresql:15.2-20230217
+    asoluter/postgresql:18
   ```
 
 ## Shell Access
