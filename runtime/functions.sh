@@ -204,7 +204,7 @@ initialize_database() {
           mv ${PG_HOME}/${PG_OLD_VERSION} ${PG_HOME}/${PG_OLD_VERSION}.migrating
 
           echo "‣ Installing PostgreSQL ${PG_OLD_VERSION}..."
-          if ! ( apt update &&  DEBIAN_FRONTEND=noninteractive apt install -y postgresql-${PG_OLD_VERSION} postgresql-client-${PG_OLD_VERSION} ) >/dev/null; then
+          if ! ( apt update &&  DEBIAN_FRONTEND=noninteractive apt install -y postgresql-${PG_OLD_VERSION} postgresql-client-${PG_OLD_VERSION} postgresql-${PG_OLD_VERSION}-pgvector postgresql-${PG_OLD_VERSION}-postgis-3 postgresql-${PG_OLD_VERSION}-postgis-3-scripts ) >/dev/null; then
             echo "ERROR! Failed to install PostgreSQL ${PG_OLD_VERSION}. Exiting..."
             # first move the old data back
             rm -rf ${PG_HOME}/${PG_OLD_VERSION}
@@ -224,6 +224,8 @@ initialize_database() {
 
         exec_as_postgres ${PG_BINDIR}/initdb --pgdata=${PG_DATADIR} \
           --username=${PG_USER} --encoding=unicode --data-checksums --auth=trust ${PG_PASSWORD:+--pwfile=/tmp/pwfile} >/dev/null
+
+        [[ -f /tmp/pwfile ]] && rm -f /tmp/pwfile
 
         if [[ -n ${PG_OLD_VERSION} ]]; then
           PG_OLD_BINDIR=/usr/lib/postgresql/${PG_OLD_VERSION}/bin
@@ -316,9 +318,13 @@ create_user() {
           echo "ERROR! Please specify a password for DB_USER in DB_PASS. Exiting..."
           exit 1
         fi
-        echo "Creating database user: ${DB_USER}"
+        local SAFE_DB_PASS="${DB_PASS//\'/\'\'}"
         if [[ -z $(psql -U ${PG_USER} -Atc "SELECT 1 FROM pg_catalog.pg_user WHERE usename = '${DB_USER}'";) ]]; then
-          psql -U ${PG_USER} -c "CREATE ROLE \"${DB_USER}\" with LOGIN CREATEDB PASSWORD '${DB_PASS}';" >/dev/null
+          echo "Creating database user: ${DB_USER}"
+          printf '%s\n' "CREATE ROLE \"${DB_USER}\" WITH LOGIN CREATEDB PASSWORD '${SAFE_DB_PASS}';" | psql -U "${PG_USER}" >/dev/null
+        else
+          echo "Ensuring password is up to date for database user: ${DB_USER}"
+          printf '%s\n' "ALTER ROLE \"${DB_USER}\" WITH PASSWORD '${SAFE_DB_PASS}';" | psql -U "${PG_USER}" >/dev/null
         fi
         ;;
     esac
@@ -340,7 +346,7 @@ load_extensions() {
 
   for extension in $(awk -F',' '{for (i = 1 ; i <= NF ; i++) print $i}' <<< "${DB_EXTENSION}"); do
     echo "‣ Loading ${extension} extension..."
-    psql -U ${PG_USER} -d ${database} -c "CREATE EXTENSION IF NOT EXISTS ${extension};" >/dev/null 2>&1
+    psql -U ${PG_USER} -d ${database} -c "CREATE EXTENSION IF NOT EXISTS \"${extension}\";" >/dev/null 2>&1
   done
 }
 
@@ -381,15 +387,38 @@ create_replication_user() {
           exit 1
         fi
 
-        echo "Creating replication user: ${REPLICATION_USER}"
+        local SAFE_REPLICATION_PASS="${REPLICATION_PASS//\'/\'\'}"
         if [[ -z $(psql -U ${PG_USER} -Atc "SELECT 1 FROM pg_catalog.pg_user WHERE usename = '${REPLICATION_USER}'";) ]]; then
-          psql -U ${PG_USER} -c "CREATE ROLE \"${REPLICATION_USER}\" WITH REPLICATION LOGIN ENCRYPTED PASSWORD '${REPLICATION_PASS}';" >/dev/null
+          echo "Creating replication user: ${REPLICATION_USER}"
+          printf '%s\n' "CREATE ROLE \"${REPLICATION_USER}\" WITH REPLICATION LOGIN ENCRYPTED PASSWORD '${SAFE_REPLICATION_PASS}';" | psql -U "${PG_USER}" >/dev/null
+        else
+          echo "Ensuring password is up to date for replication user: ${REPLICATION_USER}"
+          printf '%s\n' "ALTER ROLE \"${REPLICATION_USER}\" WITH ENCRYPTED PASSWORD '${SAFE_REPLICATION_PASS}';" | psql -U "${PG_USER}" >/dev/null
         fi
 
         set_hba_param "host replication ${REPLICATION_USER} 0.0.0.0/0 md5"
         ;;
     esac
   fi
+}
+
+update_extensions() {
+  case $REPLICATION_MODE in
+    slave|snapshot|backup)
+      echo "INFO! Extensions cannot be updated on a $REPLICATION_MODE node. Skipping..."
+      ;;
+    *)
+      echo "Updating installed extensions across all databases..."
+      psql -U "${PG_USER}" -Atc "SELECT datname FROM pg_catalog.pg_database WHERE datallowconn = true AND datistemplate = false;" | while read -r database; do
+        psql -U "${PG_USER}" -d "${database}" -Atc "SELECT extname FROM pg_extension WHERE extname != 'plpgsql';" | while read -r extension; do
+          echo "‣ Attempting to update extension '${extension}' in database '${database}'..."
+          if ! psql -U "${PG_USER}" -d "${database}" -c "ALTER EXTENSION \"${extension}\" UPDATE;" >/dev/null; then
+            echo "WARNING: Failed to update extension '${extension}' in database '${database}'." >&2
+          fi
+        done
+      done
+      ;;
+  esac
 }
 
 configure_postgresql() {
@@ -403,9 +432,21 @@ configure_postgresql() {
   
   exec_as_postgres ${PG_BINDIR}/pg_ctl -D ${PG_DATADIR} -w start >/dev/null
 
+  if [[ -n ${PG_PASSWORD} ]]; then
+    case $REPLICATION_MODE in
+      slave|snapshot|backup) ;;
+      *)
+        local SAFE_PG_PASSWORD="${PG_PASSWORD//\'/\'\'}"
+        echo "Ensuring password is up to date for postgres user: ${PG_USER}"
+        printf '%s\n' "ALTER ROLE \"${PG_USER}\" WITH PASSWORD '${SAFE_PG_PASSWORD}';" | psql -U "${PG_USER}" >/dev/null
+        ;;
+    esac
+  fi
+
   create_user
   create_database
   create_replication_user
+  update_extensions
 
   # stop the postgres server
   exec_as_postgres ${PG_BINDIR}/pg_ctl -D ${PG_DATADIR} -w stop >/dev/null
