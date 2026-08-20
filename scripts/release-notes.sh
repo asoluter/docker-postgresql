@@ -25,22 +25,20 @@ fi
 cat <<EOF
 ${NOTABLE_CHANGES}
 
-## Docker Images for sameersbn/postgresql:${RELEASE}
+## Docker Images for asoluter/postgresql:${RELEASE}
 
-- [docker.io](https://hub.docker.com/r/sameersbn/postgresql/tags)
-- [quay.io](https://quay.io/repository/sameersbn/postgresql?tag=${RELEASE}&tab=tags)
+- [docker.io](https://hub.docker.com/r/asoluter/postgresql/tags)
 
 ## Installation
 
-For installation and usage instructions please refer to the [README](https://github.com/sameersbn/docker-postgresql/blob/${RELEASE}/README.md)
+For installation and usage instructions please refer to the [README](https://github.com/asoluter/docker-postgresql/blob/${RELEASE}/README.md)
 
 ## Contributing
 
 If you find this image useful here's how you can help:
 
 - Send a Pull Request with your awesome new features and bug fixes
-- Be a part of the community and help resolve [issues](https://github.com/sameersbn/docker-postgresql/issues)
-- Support the development of this image with a [donation](http://www.damagehead.com/donate/)
+- Be a part of the community and help resolve [issues](https://github.com/asoluter/docker-postgresql/issues)
 
 ## Changelog
 

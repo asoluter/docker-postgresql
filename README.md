@@ -36,7 +36,6 @@ If you find this image useful here's how you can help:
 
 - Send a pull request with your awesome features and bug fixes
 - Help users resolve their [issues](../../issues?q=is%3Aopen+is%3Aissue).
-- Support the development of this image with a [donation](http://www.damagehead.com/donate/)
 
 ## Issues
 
@@ -46,17 +45,14 @@ SELinux users should try disabling SELinux using the command `setenforce 0` to s
 
 If the above recommendations do not help then [report your issue](../../issues/new) along with the following information:
 
-- Output of the `docker vers6` and `docker info` commands
+- Output of the `docker version` and `docker info` commands
 - The `docker run` command or `docker-compose.yml` used to start the image. Mask out the sensitive bits.
-- Please state if you are using [Boot2Docker](http://www.boot2docker.io), [VirtualBox](https://www.virtualbox.org), etc.
 
 # Getting started
 
 ## Installation
 
-Automated builds of the image are available on [Dockerhub](https://hub.docker.com/r/sameersbn/postgresql) and is the recommended method of installation.
-
-> **Note**: Builds are also available on [Quay.io](https://quay.io/repository/sameersbn/postgresql)
+Automated builds of the image are available on [Docker Hub](https://hub.docker.com/r/asoluter/postgresql) and is the recommended method of installation.
 
 ```bash
 docker pull asoluter/postgresql:18
@@ -65,7 +61,7 @@ docker pull asoluter/postgresql:18
 Alternatively you can build the image yourself.
 
 ```bash
-docker build -t sameersbn/postgresql github.com/sameersbn/docker-postgresql
+docker build -t asoluter/postgresql github.com/asoluter/docker-postgresql
 ```
 
 ## Quickstart
@@ -127,8 +123,7 @@ docker run --name postgresql -itd --restart always \
 
 > **Note**
 >
-> - When [persistence](#persistence) is in use, `PG_PASSWORD` is effective on the first run.
-> - This feature is only available in the `latest` and versions > `9.4-10`
+> When [persistence](#persistence) is in use, `PG_PASSWORD` is effective on the first run.
 
 ## Creating database user
 
@@ -157,11 +152,9 @@ docker run --name postgresql -itd --restart always \
   asoluter/postgresql:18
 ```
 
-By default databases are created by copying the standard system database named `template1`. You can specify a different template for your database using the `DB_TEMPLATE` parameter. Refer to [Template Databases](http://www.postgresql.org/docs/9.4/static/manage-ag-templatedbs.html) for further information.
+By default databases are created by copying the standard system database named `template1`. You can specify a different template for your database using the `DB_TEMPLATE` parameter. Refer to [Template Databases](https://www.postgresql.org/docs/current/manage-ag-templatedbs.html) for further information.
 
 Additionally, more than one database can be created by specifying a comma separated list of database names in `DB_NAME`. For example, the following command creates two new databases named `dbname1` and `dbname2`.
-
-*This feature is only available in releases greater than `9.1-1`*
 
 ```bash
 docker run --name postgresql -itd --restart always \
@@ -287,7 +280,7 @@ This is useful for developers to quickly snapshot the current state of a live da
 
 Just as the case of setting up a slave node or generating a snapshot, you can also create a backup of the data on the master by specifying `REPLICATION_MODE=backup`.
 
-> The backups are generated with [pg_basebackup](http://www.postgresql.org/docs/9.4/static/app-pgbasebackup.html) using the replication protocol.
+> The backups are generated with [pg_basebackup](https://www.postgresql.org/docs/current/app-pgbasebackup.html) using the replication protocol.
 
 Once the master node is created as specified in [Setting up a replication cluster](#setting-up-a-replication-cluster), you can create a point-in-time backup using:
 
@@ -312,7 +305,7 @@ docker run --name postgresql -itd --restart always \
   asoluter/postgresql:18 -c log_connections=on
 ```
 
-Please refer to the documentation of [postgres](http://www.postgresql.org/docs/9.4/static/app-postgres.html) for the complete list of available options.
+Please refer to the documentation of [postgres](https://www.postgresql.org/docs/current/app-postgres.html) for the complete list of available options.
 
 ## Logs
 
@@ -326,7 +319,7 @@ docker run --name postgresql -itd --restart always \
 To access the PostgreSQL logs you can use `docker exec`. For example:
 
 ```bash
-docker exec -it postgresql tail -f /var/log/postgresql/postgresql-9.4-main.log
+docker exec -it postgresql tail -f /var/log/postgresql/postgresql-18-main.log
 ```
 
 # UID/GID mapping
@@ -384,3 +377,7 @@ For debugging and maintenance purposes you may want access the containers shell.
 ```bash
 docker exec -it postgresql bash
 ```
+
+# Acknowledgements
+
+Originally based on [sameersbn/docker-postgresql](https://github.com/sameersbn/docker-postgresql).
