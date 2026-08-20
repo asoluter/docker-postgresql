@@ -7,7 +7,7 @@ IMAGE ?= asoluter/postgresql
 all: build
 
 build:
-	@docker build --tag=$(IMAGE):latest --tag=$(IMAGE):$(MAJOR) .
+	@docker build --tag=$(IMAGE):latest .
 
 release:
 	@docker build --tag=$(IMAGE):$(VERSION) --tag=$(IMAGE):$(MAJOR) --tag=$(IMAGE):latest .
