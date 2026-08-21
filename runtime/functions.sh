@@ -11,7 +11,7 @@ PG_RECOVERY_CONF=${PG_DATADIR}/recovery.conf
 ## Execute command as PG_USER
 exec_as_postgres() {
   if [[ $(whoami) == ${PG_USER} ]]; then
-    $@
+    "$@"
   else
     sudo -HEu ${PG_USER} "$@"
   fi
