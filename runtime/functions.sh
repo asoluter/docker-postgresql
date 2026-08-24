@@ -39,8 +39,8 @@ create_datadir() {
   echo "Initializing datadir..."
   mkdir -p ${PG_DATADIR}
   chmod 750 ${PG_DATADIR}
-  find ${PG_DATADIR} -type d -print0 | xargs -0 -I {} chmod 0700 {}
-  find ${PG_DATADIR} -type f -print0 | xargs -0 -I {} chmod 0600 {}
+  find ${PG_DATADIR} -type d -exec chmod 0700 {} +
+  find ${PG_DATADIR} -type f -exec chmod 0600 {} +
   chown -R ${PG_USER}: ${PG_DATADIR}
 }
 
