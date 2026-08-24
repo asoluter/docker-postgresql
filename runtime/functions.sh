@@ -73,15 +73,35 @@ set_postgresql_param() {
   local value=${2}
   local verbosity=${3:-verbose}
 
-  if [[ -n ${value} ]]; then
-    local current=$(exec_as_postgres sed -n -e "s/^\(${key} = '\)\([^ ']*\)\(.*\)$/\2/p" ${PG_CONF})
-    if [[ "${current}" != "${value}" ]]; then
-      if [[ ${verbosity} == verbose ]]; then
-        echo "‣ Setting postgresql.conf parameter: ${key} = '${value}'"
-      fi
-      value="$(echo "${value}" | sed 's|[&]|\\&|g')"
-      exec_as_postgres sed -i "s|^[#]*[ ]*${key} = .*|${key} = '${value}'|" ${PG_CONF}
-    fi
+  if [[ ${#} -lt 2 ]]; then
+    echo "Error: set_postgresql_param requires both key and value arguments." >&2
+    return 1
+  fi
+
+  # Escape single quotes for valid PostgreSQL syntax (e.g., "test's" -> "test''s")
+  local pg_value="${value//\'/\'\'}"
+  # Escape sed replacement characters (\, &, |)
+  local escaped_sed_value
+  escaped_sed_value=$(printf '%s\n' "${pg_value}" | sed 's/[\\&|]/\\&/g')
+  # Escape all ERE regex metacharacters for grep ( ] [ \ . * ^ $ ( ) + ? { } | )
+  local escaped_regex_value
+  escaped_regex_value=$(printf '%s\n' "${pg_value}" | sed 's/[][\\.*^$()+?{}|]/\\&/g')
+
+  # Skip if key matches target value (allows inline comments)
+  if exec_as_postgres grep -q -E "^[[:blank:]]*${key}[[:blank:]]*=[[:blank:]]*('?)${escaped_regex_value}\1[[:blank:]]*(#.*)?$" "${PG_CONF}"; then
+    return 0
+  fi
+
+  if [[ ${verbosity} == "verbose" ]]; then
+    echo "‣ Setting postgresql.conf parameter: ${key} = '${pg_value}'"
+  fi
+
+  # Update if key exists; append if missing/commented out
+  if exec_as_postgres grep -q -E "^[[:blank:]]*${key}[[:blank:]]*=" "${PG_CONF}"; then
+    # Note: Strips inline comments
+    exec_as_postgres sed -i "s|^[[:blank:]]*${key}[[:blank:]]*=.*|${key} = '${escaped_sed_value}'|" "${PG_CONF}"
+  else
+    printf '%s = '\''%s'\''\n' "${key}" "${pg_value}" | exec_as_postgres tee -a "${PG_CONF}" > /dev/null
   fi
 }
 
