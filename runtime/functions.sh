@@ -134,8 +134,7 @@ configure_hot_standby() {
       echo "Configuring hot standby..."
       set_postgresql_param "wal_level" "hot_standby"
       set_postgresql_param "max_wal_senders" "16"
-      set_postgresql_param "checkpoint_segments" "8"
-      set_postgresql_param "wal_keep_segments" "32"
+      set_postgresql_param "wal_keep_size" "512MB"
       set_postgresql_param "hot_standby" "on"
       ;;
   esac
