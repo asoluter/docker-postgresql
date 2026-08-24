@@ -336,7 +336,7 @@ load_extensions() {
 
   for extension in $(awk -F',' '{for (i = 1 ; i <= NF ; i++) print $i}' <<< "${DB_EXTENSION}"); do
     echo "‣ Loading ${extension} extension..."
-    psql -U ${PG_USER} -d ${database} -c "CREATE EXTENSION IF NOT EXISTS \"${extension}\";" >/dev/null 2>&1
+    psql -U ${PG_USER} -d ${database} -c "CREATE EXTENSION IF NOT EXISTS \"${extension}\";" >/dev/null
   done
 }
 
