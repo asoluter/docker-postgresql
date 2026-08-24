@@ -13,7 +13,7 @@ exec_as_postgres() {
   if [[ $(whoami) == ${PG_USER} ]]; then
     "$@"
   else
-    sudo -HEu ${PG_USER} "$@"
+    sudo -Hu "${PG_USER}" env "$@"
   fi
 }
 
