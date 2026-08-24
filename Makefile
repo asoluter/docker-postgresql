@@ -12,6 +12,9 @@ build:
 release:
 	@docker build --tag=$(IMAGE):$(VERSION) --tag=$(IMAGE):$(MAJOR) --tag=$(IMAGE):latest .
 
+publish-version: release
+	@docker push $(IMAGE):$(VERSION)
+
 publish: release
 	@docker push $(IMAGE):$(VERSION)
 	@docker push $(IMAGE):$(MAJOR)
